@@ -1,2 +1,1 @@
 # marya-bot
-marya-bot
