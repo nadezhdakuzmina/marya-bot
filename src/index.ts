@@ -3,6 +3,7 @@ import Telegram from '@modules/core';
 import Store from '@modules/store';
 
 import { CONFIG_PATH } from '@constants';
+import applyScripts from './scripts';
 
 import type { StoreData as ConfigStoreData } from '@modules/config';
 import { StoreData as UsersStoreData, Users } from '@modules/users';
@@ -27,11 +28,11 @@ store
   .then(async () => {
     telegram = new Telegram(config);
 
-    telegram.configureScript('Привет!', function (message: Message) {
-      this.sendMessage(message.from.id, 'Скажи как тебя зовут!');
+    const context = {
+      telegram,
+      config,
+      users,
+    };
 
-      this.setResponseCallback(message, function (responseMessage: Message) {
-        this.sendMessage(message.from.id, `Тебя зовут ${responseMessage.text}`);
-      });
-    });
+    applyScripts(context);
   });

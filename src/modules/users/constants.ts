@@ -1,4 +1,4 @@
-export const MAIN_INVITE_CODE = 'MAIN_INVITE_CODE';
+export const MAIN_INVITE_CODE = -1;
 
 export const DEFAULT_USERS_LIST = {};
 
