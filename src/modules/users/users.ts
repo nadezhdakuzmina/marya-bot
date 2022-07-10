@@ -38,11 +38,11 @@ export class Users {
     });
   }
 
-  public getUser(uid: string): UserData {
+  public getUser(uid: number): UserData {
     return this.users[uid];
   }
 
-  public updateInviteCodes(uid: string, code: string): void {
+  public updateInviteCodes(uid: number, code: string): void {
     this.inviteCodes = {
       ...this.inviteCodes,
       [uid]: code,
@@ -53,7 +53,7 @@ export class Users {
     });
   }
 
-  public updateUsers(uid: string, user?: UserData): void {
+  public updateUsers(uid: number, user?: UserData): void {
     this.users = {
       ...this.users,
       [uid]: user,
@@ -64,7 +64,7 @@ export class Users {
     });
   }
 
-  public createUser(uid: string, user: UpdateUserData): void {
+  public createUser(uid: number, user: UpdateUserData): void {
     const newUser: UserData = {
       ...user,
       inviteCode: this.generateInviteCode(uid),
@@ -74,11 +74,11 @@ export class Users {
     this.updateUsers(uid, newUser);
   }
 
-  public deleteUser(uid: string): void {
+  public deleteUser(uid: number): void {
     this.updateUsers(uid);
   }
 
-  private generateInviteCode(uid?: string): string {
+  private generateInviteCode(uid?: number): string {
     const {
       settings: { inviteCodeLength },
     } = this.config;

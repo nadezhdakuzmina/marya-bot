@@ -27,5 +27,12 @@ store
   })
   .then(async () => {
     telegram = new Telegram(config);
-    applyScripts(telegram);
+
+    const context = {
+      telegram,
+      config,
+      users,
+    };
+
+    applyScripts(context);
   });

@@ -9,7 +9,7 @@ export interface InitParams {
 export interface UserData {
   fullName: string;
   phone: string;
-  bonuce: number;
+  bonus: number;
   inviteCode: string;
   procedures: Procedure[];
 }
@@ -22,7 +22,7 @@ export interface Procedure {
 
 export interface StoreData {
   inviteCodes: {
-    [uid: string]: string;
+    [uid: number]: string;
   };
   users: {
     [key: string]: UserData;

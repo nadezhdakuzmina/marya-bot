@@ -1,9 +1,10 @@
 import { onStart } from './onStart';
 
-import type Telegram from '@modules/core';
+import type { Context } from './types';
 
-function applyScripts(telegram: Telegram) {
-  telegram.configureScript('/start', onStart);
+function applyScripts(context: Context) {
+  const { telegram } = context;
+  telegram.configureScript('/start', onStart.bind(context));
 }
 
 export default applyScripts;
