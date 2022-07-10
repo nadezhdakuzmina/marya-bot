@@ -23,3 +23,15 @@ export type MessageCallback = (message: Message) => CallbackResponse;
 export interface Scripts {
   [key: string]: MessageCallback;
 }
+
+export type Keyboard = {
+  text: string;
+}[][];
+
+export interface Thread {
+  [uid: string]: Scripts;
+}
+
+export interface Keyboards {
+  [name: string]: Keyboard;
+}

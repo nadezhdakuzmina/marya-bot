@@ -9,6 +9,9 @@ import type {
   MessageCallback,
   MessageCallbacks,
   Scripts,
+  Keyboard,
+  Thread,
+  Keyboards,
 } from './types';
 
 export class TelegramCore {
@@ -17,6 +20,8 @@ export class TelegramCore {
   private activeMessageCallbacks: MessageCallbacks;
   private activePromise: Promise<void>;
   private scripts: Scripts;
+  private threads: Thread;
+  private keyboards: Keyboards;
 
   constructor(config: Config) {
     this.config = config;
@@ -26,6 +31,8 @@ export class TelegramCore {
 
     this.activeMessageCallbacks = {};
     this.scripts = {};
+    this.threads = {};
+    this.keyboards = {};
 
     this.client.on('polling_error', console.error);
     this.client.on('message', this.onMessage.bind(this));
@@ -52,15 +59,20 @@ export class TelegramCore {
     return currPromise;
   }
 
-  public async sendMessage(chatID: number, message: string): Promise<number> {
+  public async sendMessage(chatID: number, message: string, keyboard?: Keyboard): Promise<number> {
     return this.queue(() => this.client
       .sendMessage(chatID, message, {
         parse_mode: 'Markdown',
         disable_web_page_preview: true,
+        reply_markup: keyboard ? {
+          keyboard,
+        } : {
+          remove_keyboard: true,
+        },
       })
       .then(({ message_id }) => message_id)
-      .catch(({ code }) => {
-        console.error(code);
+      .catch(({ response: { body: { description } } }) => {
+        console.error(`Telegram Error: ${description}`);
         return null;
       })
     );
@@ -78,13 +90,13 @@ export class TelegramCore {
         parse_mode: 'Markdown',
       })
       .then(() => true)
-      .catch(({ code }) => {
-        console.error(code);
-        return false;
+      .catch(({ response: { body: { description } } }) => {
+        console.error(`Telegram Error: ${description}`);
+        return null;
       })
     );
   }
-
+ 
   public setResponseCallback(
     message: Message,
     callback: MessageCallback,
@@ -138,18 +150,59 @@ export class TelegramCore {
   }
 
   private async onMessage(message: Message): Promise<void> {
-    const { text } = message;
+    const {
+      text,
+      from: { id: userID },
+    } = message;
+
+    const threadScriptFunction = this.threads[userID]?.[text];
+    if (threadScriptFunction) {
+      const responseCallback = threadScriptFunction(message);
+      if (responseCallback) {
+        this.activeMessageCallbacks[userID] = responseCallback;
+      }
+
+      return;
+    }
 
     const scriptFunction = this.scripts[text];
+
     if (scriptFunction) {
-      scriptFunction(message);
+      const responseCallback = scriptFunction(message);
+      if (responseCallback) {
+        this.activeMessageCallbacks[userID] = responseCallback;
+      }
+
       return;
     }
 
     this.callResponseCallback(message);
   }
 
+  public createThread(message: Message) {
+    const {
+      from: { id: userID }
+    } = message;
+
+    if (!(userID in this.threads)) {
+      this.threads[userID] = {};
+    }
+
+    return {
+      add: ((name: string, scriptFunction?: MessageCallback) => {
+        this.threads[userID][name] = scriptFunction.bind(this); 
+      }),
+      quit: (() => {
+        delete this.threads[userID];
+      }),
+    }
+  }
+
   public configureScript(name: string, scriptFunction?: MessageCallback) {
     this.scripts[name] = scriptFunction.bind(this);
+  }
+
+  public createKeyboard(name: string, keyboard: Keyboard): void {
+    this.keyboards[name] = keyboard;
   }
 }

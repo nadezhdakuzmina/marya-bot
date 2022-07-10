@@ -35,4 +35,7 @@ store
     };
 
     applyScripts(context);
+
+    const mainInviteCode = users.generateInviteCode();
+    console.log(`Ивайт код админа: ${mainInviteCode}`);
   });

@@ -6,7 +6,7 @@ import {
 
 import type Config from '@modules/config';
 import type Store from '@modules/store';
-import type { InitParams, StoreData, UpdateUserData, UserData } from './types';
+import { CreateUserData, InitParams, Permitions, StoreData, UpdateUserData, UserData } from './types';
 
 export class Users {
   public users: StoreData['users'];
@@ -45,7 +45,7 @@ export class Users {
   public updateInviteCodes(uid: number, code: string): void {
     this.inviteCodes = {
       ...this.inviteCodes,
-      [uid]: code,
+      [code]: uid,
     };
 
     this.store.update({
@@ -53,7 +53,7 @@ export class Users {
     });
   }
 
-  public updateUsers(uid: number, user?: UserData): void {
+  private insertUser(uid: number, user?: UserData): void {
     this.users = {
       ...this.users,
       [uid]: user,
@@ -64,32 +64,64 @@ export class Users {
     });
   }
 
-  public createUser(uid: number, user: UpdateUserData): void {
+  public updateUser(uid: number, user: UpdateUserData): void {
+    const newUser = {
+      ...this.users[uid],
+      ...user,
+    };
+
+    this.insertUser(uid, newUser);
+  }
+
+  public createUser(uid: number, user: CreateUserData): void {
     const newUser: UserData = {
       ...user,
       inviteCode: this.generateInviteCode(uid),
       procedures: [],
     };
 
-    this.updateUsers(uid, newUser);
+    this.insertUser(uid, newUser);
   }
 
   public deleteUser(uid: number): void {
-    this.updateUsers(uid);
+    this.insertUser(uid);
   }
 
-  private generateInviteCode(uid?: number): string {
+  public generateInviteCode(uid?: number): string {
     const {
       settings: { inviteCodeLength },
     } = this.config;
 
+    // Проверяем, что главный код уже сгенерирован 
+    const mainInviteCode = Object.entries(this.inviteCodes)
+      .find(([_, uid]) => uid === MAIN_INVITE_CODE);
+
+    if (mainInviteCode) {
+      return mainInviteCode[0];
+    }
+
     const maxCodeNum = 10 ** inviteCodeLength - 1;
     const minCodeNum = 10 ** (inviteCodeLength - 1);
 
-    const codeNum = Math.random() * (maxCodeNum - minCodeNum) + minCodeNum;
-    const code = Math.floor(codeNum).toString();
+    let code: string;
+
+    while (!code || code in this.inviteCodes) {
+      const codeNum = Math.random() * (maxCodeNum - minCodeNum) + minCodeNum;
+      code = Math.floor(codeNum).toString();
+    }
 
     this.updateInviteCodes(uid || MAIN_INVITE_CODE, code);
     return code;
+  }
+
+  public applyInviteCode(uid: number, code: string): void {
+    const inviteCodeCreater = this.inviteCodes[code];
+    
+    if (inviteCodeCreater === MAIN_INVITE_CODE) {
+      this.updateUser(uid, { permitions: Permitions.admin });
+      return;
+    }
+
+    // Здесь нужно разрулить начисление бонусов
   }
 }
