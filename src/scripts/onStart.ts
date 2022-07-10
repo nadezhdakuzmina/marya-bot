@@ -10,7 +10,6 @@ export function onStart(this: Context, message: Message) {
     message.from.id,
     'Привет! Меня зовут Романова Мария. Я врач косметолог, а это чат бот, который помогает мне начислять бонусы, дарить скидки и делится уникальными предложениями. Приступим к регистрации? '
   );
-
   function getPhone(responseMessage: Message) {
     phone = responseMessage.text;
     users.createUser(message.from.id, { fullName, phone, bonus: 0 });
@@ -18,10 +17,6 @@ export function onStart(this: Context, message: Message) {
       message.from.id,
       `Тебя зовут ${fullName}, твой номер телефона: ${phone}. Верно?`
     );
-    if (responseMessage.text !== 'да') {
-      return getPhone;
-    }
-    return telegram.sendMessage(message.from.id, `Регистрация прошла успешно!`);
   }
 
   function getFio(responseMessage: Message) {
