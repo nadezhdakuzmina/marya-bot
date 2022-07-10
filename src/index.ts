@@ -1,22 +1,28 @@
-import Store from '@modules/store';
 import Config from '@modules/config';
 import Telegram from '@modules/core';
+import Store from '@modules/store';
 
 import { CONFIG_PATH } from '@constants';
 
-import type { StoreData } from '@modules/config';
-import type { UserData } from '@types';
+import type { StoreData as ConfigStoreData } from '@modules/config';
+import { StoreData as UsersStoreData, Users } from '@modules/users';
 import type { Message } from 'node-telegram-bot-api';
 
-const configStore = new Store<StoreData<UserData>>(CONFIG_PATH);
+const store = new Store<ConfigStoreData & UsersStoreData>(CONFIG_PATH);
 
 let config: Config;
+let users: Users;
 let telegram: Telegram;
 
-configStore.load()
+store
+  .load()
   .then(() => {
-    config = new Config({ store: configStore });
+    config = new Config({ store });
     return config.initConfig();
+  })
+  .then(() => {
+    users = new Users({ store, config });
+    return users.initUsers();
   })
   .then(async () => {
     telegram = new Telegram(config);
@@ -26,6 +32,6 @@ configStore.load()
 
       this.setResponseCallback(message, function (responseMessage: Message) {
         this.sendMessage(message.from.id, `Тебя зовут ${responseMessage.text}`);
-      })
-    })
+      });
+    });
   });

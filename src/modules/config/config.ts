@@ -1,6 +1,6 @@
 import input from '@utils/input';
 
-import { DEFAULT_SETTINGS, DEFAULT_TELEGRAM_CREDENTIALS } from './settings';
+import { DEFAULT_SETTINGS, DEFAULT_TELEGRAM_CREDENTIALS } from './constants';
 
 import type Store from '@modules/store';
 import type { StoreData } from './types';
@@ -10,9 +10,9 @@ export const SECTION_LENGTH = 10;
 
 export class Config {
   public settings: Settings;
-  public credentials: StoreData<any>['credentials'];
+  public credentials: StoreData['credentials'];
 
-  private store: Store<StoreData<any>>;
+  private store: Store<StoreData>;
 
   constructor(params: InitParams) {
     const { store } = params;
@@ -45,6 +45,19 @@ export class Config {
     });
   }
 
+  public updateTelegramCredentials(
+    data: Partial<StoreData['credentials']>
+  ): void {
+    this.credentials = {
+      ...this.credentials,
+      ...data,
+    };
+
+    this.store.update({
+      credentials: this.credentials,
+    });
+  }
+
   private async initWrapper(
     name: string,
     func: () => Promise<void>
@@ -73,19 +86,6 @@ export class Config {
         this.credentials.token = await input('Telegram token: ');
       });
     }
-  }
-
-  public updateTelegramCredentials(
-    data: Partial<StoreData<any>['credentials']>
-  ): void {
-    this.credentials = {
-      ...this.credentials,
-      ...data,
-    };
-
-    this.store.update({
-      credentials: this.credentials,
-    });
   }
 
   /* </Telegram-settings managers> */

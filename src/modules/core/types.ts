@@ -1,4 +1,3 @@
-import type { UserData } from '@types';
 import type { Message } from 'node-telegram-bot-api';
 
 export interface Config {
