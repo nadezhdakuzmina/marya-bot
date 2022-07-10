@@ -48,7 +48,9 @@ export class Users {
       [uid]: code,
     };
 
-    this.store.update(this.inviteCodes);
+    this.store.update({
+      inviteCodes: this.inviteCodes,
+    });
   }
 
   public updateUsers(uid: string, user?: UserData): void {
@@ -57,7 +59,9 @@ export class Users {
       [uid]: user,
     };
 
-    this.store.update(this.users);
+    this.store.update({
+      users: this.users,
+    });
   }
 
   public createUser(uid: string, user: UpdateUserData): void {
