@@ -14,7 +14,6 @@
     "downlevelIteration": true,
     "paths": {
       "@constants": ["./src/constants.ts"],
-      "@types": ["./src/types.ts"],
       "@modules/*": ["./src/modules/*"],
       "@resources/*": ["./src/resources/*"],
       "@utils/*": ["./src/utils/*"]

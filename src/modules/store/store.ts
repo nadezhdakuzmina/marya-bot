@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'fs/promises';
 
 export class Store<T> {
-  public filePath: string;
   public store: Partial<T>;
+  private filePath: string;
 
   constructor(filePath: string) {
     this.filePath = filePath;
@@ -18,7 +18,7 @@ export class Store<T> {
       });
   }
 
-  public async saveConfig(): Promise<void> {
+  public async save(): Promise<void> {
     const payload = JSON.stringify(this.store, null, 2);
     await writeFile(this.filePath, payload);
   }
@@ -29,6 +29,6 @@ export class Store<T> {
       ...data,
     };
 
-    await this.saveConfig();
+    await this.save();
   }
 }
