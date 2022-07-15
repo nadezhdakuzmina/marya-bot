@@ -26,16 +26,6 @@ function applyScripts(this: Context) {
     [{ text: Commands.personalAccount }],
   ];
 
-  /* telegram.setMainKeyboard([
-    [{ text: Commands.adminPanel, checkAccess: adminAccess, }],
-    [{ text: Commands.personalAccount }],
-  ]); */
-
-  /* telegram.configureScript(Commands.start, onStart.bind(this));
-  telegram.configureScript(Commands.adminPanel, adminPanelThread.bind(this));
-  // Добавить подключение команды Commands.personalAccount
-  telegram.configureScript(Commands.unknownMessage, onUnknownMessage.bind(this)); */
-
   telegram.configureScripts({
     [Commands.start]: createStartScript.call(this, mainMenu),
     [Commands.adminPanel]: createAdminScript.call(this, mainMenu),
