@@ -4,9 +4,17 @@ import {
   MAIN_INVITE_CODE,
 } from './constants';
 
+import { Permitions } from './types';
+
 import type Config from '@modules/config';
 import type Store from '@modules/store';
-import { CreateUserData, InitParams, Permitions, StoreData, UpdateUserData, UserData } from './types';
+import type {
+  CreateUserData,
+  InitParams,
+  StoreData,
+  UpdateUserData,
+  UserData,
+} from './types';
 
 export class Users {
   public users: StoreData['users'];
@@ -38,6 +46,10 @@ export class Users {
     });
   }
 
+  public checkAccess(uid: number, permitions: Permitions): boolean {
+    return this.users[uid]?.permitions === permitions;
+  }
+
   public getUser(uid: number): UserData {
     return this.users[uid];
   }
@@ -50,17 +62,6 @@ export class Users {
 
     this.store.update({
       inviteCodes: this.inviteCodes,
-    });
-  }
-
-  private insertUser(uid: number, user?: UserData): void {
-    this.users = {
-      ...this.users,
-      [uid]: user,
-    };
-
-    this.store.update({
-      users: this.users,
     });
   }
 
@@ -92,9 +93,10 @@ export class Users {
       settings: { inviteCodeLength },
     } = this.config;
 
-    // Проверяем, что главный код уже сгенерирован 
-    const mainInviteCode = Object.entries(this.inviteCodes)
-      .find(([_, uid]) => uid === MAIN_INVITE_CODE);
+    // Проверяем, что главный код уже сгенерирован
+    const mainInviteCode = Object.entries(this.inviteCodes).find(
+      ([_, userID]) => userID === MAIN_INVITE_CODE
+    );
 
     if (mainInviteCode) {
       return mainInviteCode[0];
@@ -116,12 +118,23 @@ export class Users {
 
   public applyInviteCode(uid: number, code: string): void {
     const inviteCodeCreater = this.inviteCodes[code];
-    
+
     if (inviteCodeCreater === MAIN_INVITE_CODE) {
       this.updateUser(uid, { permitions: Permitions.admin });
       return;
     }
 
     // Здесь нужно разрулить начисление бонусов
+  }
+
+  private insertUser(uid: number, user?: UserData): void {
+    this.users = {
+      ...this.users,
+      [uid]: user,
+    };
+
+    this.store.update({
+      users: this.users,
+    });
   }
 }

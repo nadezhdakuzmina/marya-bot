@@ -28,13 +28,11 @@ store
   .then(async () => {
     telegram = new Telegram(config);
 
-    const context = {
+    applyScripts.call({
       telegram,
       config,
       users,
-    };
-
-    applyScripts(context);
+    });
 
     const mainInviteCode = users.generateInviteCode();
     console.log(`Ивайт код админа: ${mainInviteCode}`);
