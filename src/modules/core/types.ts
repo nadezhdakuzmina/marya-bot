@@ -3,23 +3,35 @@ import type { Message } from 'node-telegram-bot-api';
 export interface Config {
   credentials: {
     token: string;
-  }
+  };
   settings: {
     sendMessageDelay: number;
-  }
+  };
 }
 
-export type CallbackResponse =
-  | Promise<void | MessageCallback>
-  | MessageCallback
-  | void;
+export type ScriptFunc = (
+  message: Message
+) => Scripts | Promise<Scripts | undefined> | void;
 
-export interface MessageCallbacks {
-  [key: number]: MessageCallback | Promise<CallbackResponse>;
+export interface TextScript {
+  text: string;
+  keyboard?: Keyboard;
+  onText?: Scripts;
 }
 
-export type MessageCallback = (message: Message) => CallbackResponse;
+export type Script = ScriptFunc | TextScript;
 
 export interface Scripts {
-  [key: string]: MessageCallback;
+  [key: string]: Script;
 }
+
+export interface UserScriptsPoints {
+  [uid: number]: Scripts;
+}
+
+export interface KeyboardButton {
+  text: string;
+  checkAccess?: (uid: number) => boolean;
+}
+
+export type Keyboard = KeyboardButton[][];
