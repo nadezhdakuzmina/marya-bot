@@ -90,7 +90,6 @@ export class Users {
       return;
     }
 
-    // TODO: объединить с методом applyInviteCode
     this.applyInviteCode(uid, code);
   }
 

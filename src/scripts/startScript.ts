@@ -125,10 +125,3 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
 }
 
 export default createStartScript;
-
-/* [Answers.Any]: function (this: TelegramCore, message: Message) {
-  this.sendMessage(message.from.id, `Тебя зовут:
-  ${usersData[message.from.id].fullName}
-  ${usersData[message.from.id].code &&
-    `, code: ${usersData[message.from.id].code}`}`);
-} */

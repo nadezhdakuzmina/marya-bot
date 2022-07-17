@@ -19,7 +19,6 @@ export interface Sale {
 export interface UserData {
   fullName: string;
   phone: string;
-  sex: string;
   birthday: string;
   bonus: number;
   permitions: Permitions;
