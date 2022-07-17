@@ -75,13 +75,22 @@ export class Users {
   }
 
   public createUser(uid: number, user: CreateUserData): void {
+    const { code, ...otherParams } = user;
+
     const newUser: UserData = {
-      ...user,
+      ...otherParams,
+      sales: [],
       inviteCode: this.generateInviteCode(uid),
       procedures: [],
     };
 
     this.insertUser(uid, newUser);
+
+    if (!code) {
+      return;
+    }
+
+    this.applyInviteCode(uid, code);
   }
 
   public deleteUser(uid: number): void {
@@ -93,13 +102,15 @@ export class Users {
       settings: { inviteCodeLength },
     } = this.config;
 
-    // Проверяем, что главный код уже сгенерирован
-    const mainInviteCode = Object.entries(this.inviteCodes).find(
-      ([_, userID]) => userID === MAIN_INVITE_CODE
-    );
+    if (!uid) {
+      // Проверяем, что главный код уже сгенерирован
+      const mainInviteCode = Object.entries(this.inviteCodes).find(
+        ([_, userID]) => userID === MAIN_INVITE_CODE
+      );
 
-    if (mainInviteCode) {
-      return mainInviteCode[0];
+      if (mainInviteCode) {
+        return mainInviteCode[0];
+      }
     }
 
     const maxCodeNum = 10 ** inviteCodeLength - 1;
@@ -116,7 +127,7 @@ export class Users {
     return code;
   }
 
-  public applyInviteCode(uid: number, code: string): void {
+  private applyInviteCode(uid: number, code: string): void {
     const inviteCodeCreater = this.inviteCodes[code];
 
     if (inviteCodeCreater === MAIN_INVITE_CODE) {
@@ -124,7 +135,20 @@ export class Users {
       return;
     }
 
-    // Здесь нужно разрулить начисление бонусов
+    const user = this.getUser(uid);
+    if (user.inviter) {
+      return;
+    }
+
+    this.updateUser(uid, {
+      inviter: this.inviteCodes[code],
+      sales: [
+        {
+          value: 0.05,
+          name: 'startSale',
+        },
+      ],
+    });
   }
 
   private insertUser(uid: number, user?: UserData): void {

@@ -11,13 +11,21 @@ export interface InitParams {
   config: Config;
 }
 
+export interface Sale {
+  value: number; // в долях
+  name: string;
+}
+
 export interface UserData {
   fullName: string;
   phone: string;
+  birthday: string;
   bonus: number;
   permitions: Permitions;
   inviteCode: string;
   procedures: Procedure[];
+  sales: Sale[];
+  inviter?: number;
 }
 
 export interface Procedure {
@@ -35,7 +43,12 @@ export interface StoreData {
   };
 }
 
-export type CreateUserData = Omit<UserData, 'procedures' | 'inviteCode'> &
-Partial<Pick<UserData, 'procedures'>>;
+export type CreateUserData = Omit<
+  UserData,
+  'procedures' | 'inviteCode' | 'sales'
+> &
+  Partial<Pick<UserData, 'procedures'>> & {
+    code?: string;
+  };
 
 export type UpdateUserData = Partial<UserData>;
