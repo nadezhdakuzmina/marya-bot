@@ -17,6 +17,7 @@ export interface Sale {
 }
 
 export interface UserData {
+  id: number;
   fullName: string;
   phone: string;
   birthday: string;
@@ -30,8 +31,8 @@ export interface UserData {
 
 export interface Procedure {
   sum: number;
-  name: number;
-  date: string;
+  name: string;
+  date: number;
 }
 
 export interface StoreData {

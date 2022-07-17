@@ -4,7 +4,10 @@ import {
   MAIN_INVITE_CODE,
 } from './constants';
 
-import { Permitions } from './types';
+import makeShingles from '@utils/makeShingles';
+import normalizePhone from '@utils/normalizePhone';
+
+import { Permitions, Procedure } from './types';
 
 import type Config from '@modules/config';
 import type Store from '@modules/store';
@@ -16,17 +19,25 @@ import type {
   UserData,
 } from './types';
 
+const SHINGLE_SIZE = 3;
+const MAX_USERS_IN_SEARCH = 10;
+
 export class Users {
   public users: StoreData['users'];
   public inviteCodes: StoreData['inviteCodes'];
 
   private store: Store<StoreData>;
   private config: Config;
+  private userIndexes: Map<string, number[]>;
+  private isSearchReady: boolean;
 
   constructor(params: InitParams) {
     const { store, config } = params;
+
     this.store = store;
     this.config = config;
+
+    this.userIndexes = new Map<string, number[]>();
   }
 
   public async initUsers(): Promise<void> {
@@ -40,10 +51,49 @@ export class Users {
       ...this.store.store.inviteCodes,
     };
 
+    this.makeUsersIndexes();
+
     return this.store.update({
       users: this.users,
       inviteCodes: this.inviteCodes,
     });
+  }
+
+  public findUsers(nameOrPhone: string): UserData[] {
+    if (!this.isSearchReady) {
+      return [];
+    }
+
+    const userEntries = new Map<number, number>();
+
+    try {
+      nameOrPhone = normalizePhone(nameOrPhone);
+    } catch (e) {}
+
+    const entries = nameOrPhone
+      .toLowerCase()
+      .split(' ')
+      .reduce(
+        (shingles, word) => [...shingles, ...makeShingles(word, SHINGLE_SIZE)],
+        []
+      );
+
+    entries.forEach((key) => {
+      if (!this.userIndexes.has(key)) {
+        return;
+      }
+
+      const usersID = this.userIndexes.get(key);
+      usersID.forEach((userID) => {
+        const entriesCount = userEntries.get(userID) || 0;
+        userEntries.set(userID, entriesCount + 1);
+      });
+    });
+
+    return Array.from(userEntries.entries())
+      .sort(([_, a], [__, b]) => b - a)
+      .slice(0, MAX_USERS_IN_SEARCH)
+      .map(([userID]) => this.users[userID]);
   }
 
   public checkAccess(uid: number, permitions: Permitions): boolean {
@@ -65,6 +115,26 @@ export class Users {
     });
   }
 
+  public captureProcedure(uid: number, procedure: Procedure): void {
+    const user = this.users[uid];
+
+    if (!user) {
+      return;
+    }
+
+    if (!user.procedures.length) {
+      const inviter = this.users[user.inviter];
+
+      if (inviter) {
+        inviter.bonus += procedure.sum * 0.05;
+      }
+    }
+
+    this.updateUser(uid, {
+      procedures: [...this.users[uid].procedures, procedure],
+    });
+  }
+
   public updateUser(uid: number, user: UpdateUserData): void {
     const newUser = {
       ...this.users[uid],
@@ -79,12 +149,15 @@ export class Users {
 
     const newUser: UserData = {
       ...otherParams,
+      id: uid,
       sales: [],
+      phone: normalizePhone(user.phone),
       inviteCode: this.generateInviteCode(uid),
       procedures: [],
     };
 
     this.insertUser(uid, newUser);
+    this.insertUserInIndex(newUser);
 
     if (!code) {
       return;
@@ -125,6 +198,53 @@ export class Users {
 
     this.updateInviteCodes(uid || MAIN_INVITE_CODE, code);
     return code;
+  }
+
+  private makeUsersIndexes(): void {
+    const usersList = Object.values(this.users);
+    let index = 0;
+
+    const indexUser = () =>
+      setTimeout(() => {
+        const user = usersList[index++];
+        this.insertUserInIndex(user);
+
+        if (index < usersList.length) {
+          indexUser();
+          return;
+        }
+
+        this.isSearchReady = true;
+      });
+
+    indexUser();
+  }
+
+  private insertUserInIndex(user: UserData): void {
+    const entries = [
+      ...makeShingles(user.phone, SHINGLE_SIZE),
+      ...user.fullName
+        .toLowerCase()
+        .split(' ')
+        .reduce(
+          (shingles, word) => [
+            ...shingles,
+            ...makeShingles(word, SHINGLE_SIZE),
+          ],
+          []
+        ),
+    ];
+
+    entries.forEach((key) => {
+      if (!this.userIndexes.has(key)) {
+        this.userIndexes.set(key, []);
+      }
+
+      const userEntries = this.userIndexes.get(key);
+      if (!userEntries.includes(user.id)) {
+        userEntries.push(user.id);
+      }
+    });
   }
 
   private applyInviteCode(uid: number, code: string): void {
