@@ -8,6 +8,7 @@ import type {
   Keyboard,
   KeyboardButton,
   Scripts,
+  UserCatchPoints,
   UserScriptsPoints,
 } from './types';
 
@@ -17,6 +18,7 @@ export class TelegramCore {
   private activePromise: Promise<void>;
   private scripts: Scripts;
   private userScriptsPoints: UserScriptsPoints;
+  private userCatchPoints: UserCatchPoints;
 
   constructor(config: Config) {
     this.config = config;
@@ -25,6 +27,7 @@ export class TelegramCore {
     this.client = new TelegramBot(token, { polling: true });
 
     this.userScriptsPoints = {};
+    this.userCatchPoints = {};
 
     this.client.on('polling_error', console.error);
     this.client.on('message', this.onMessage.bind(this));
@@ -146,6 +149,18 @@ export class TelegramCore {
       return;
     }
 
+    const currentUserCatchPoint = this.userCatchPoints[userID];
+
+    if (currentUserCatchPoint) {
+      const result = currentUserCatchPoint.call(this, message);
+
+      if (result === false) {
+        return;
+      }
+
+      delete this.userCatchPoints[userID];
+    }
+
     const currentUserScriptPoint =
       this.userScriptsPoints[userID] || this.scripts;
     const script = currentUserScriptPoint[text] || currentUserScriptPoint['*'];
@@ -160,6 +175,12 @@ export class TelegramCore {
     }
 
     this.sendMessage(userID, script.text, script.keyboard);
+
+    if (script.catchMessage) {
+      this.userCatchPoints[userID] = script.catchMessage;
+    } else {
+      this.userCatchPoints[userID] = null;
+    }
 
     if (script.onText) {
       this.userScriptsPoints[userID] = script.onText;
