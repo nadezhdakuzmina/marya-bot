@@ -5,9 +5,9 @@ import {
 } from './constants';
 
 import makeShingles from '@utils/makeShingles';
-import normalizePhone from '@utils/normalizePhone';
+import normalizePhone, { NormalizePhoneError } from '@utils/normalizePhone';
 
-import { Permitions, Procedure } from './types';
+import { Permitions, Procedure, UpdateUserFunc } from './types';
 
 import type Config from '@modules/config';
 import type Store from '@modules/store';
@@ -21,6 +21,11 @@ import type {
 
 const SHINGLE_SIZE = 3;
 const MAX_USERS_IN_SEARCH = 10;
+
+export const Errors = {
+  InvalidPhone: new Error('the phone was already used before'),
+  PhoneNormalize: NormalizePhoneError,
+};
 
 export class Users {
   public users: StoreData['users'];
@@ -122,11 +127,15 @@ export class Users {
       return;
     }
 
+    // Если это первая процедура
     if (!user.procedures.length) {
       const inviter = this.users[user.inviter];
 
       if (inviter) {
-        inviter.bonus += procedure.sum * 0.05;
+        this.updateUser(inviter.id, {
+          // TODO: Сделать настраиваемой
+          bonus: inviter.bonus + procedure.sum * 0.05,
+        });
       }
     }
 
@@ -135,24 +144,46 @@ export class Users {
     });
   }
 
-  public updateUser(uid: number, user: UpdateUserData): void {
+  public updateUser(uid: number, user: UpdateUserData): Promise<void> {
     const newUser = {
       ...this.users[uid],
       ...user,
     };
 
-    this.insertUser(uid, newUser);
+    return this.insertUser(uid, newUser);
+  }
+
+  public async updateUsers(func: UpdateUserFunc): Promise<void> {
+    Object.entries(this.users).forEach(([uid, user]) => {
+      this.users[uid] = {
+        ...user,
+        ...func(user),
+      };
+    });
+
+    return this.store.update({
+      users: this.users,
+    });
   }
 
   public createUser(uid: number, user: CreateUserData): void {
-    const { code, ...otherParams } = user;
+    const { code, phone, ...otherParams } = user;
+
+    const userPhone = normalizePhone(phone);
+
+    const findedUsers = this.findUsers(userPhone);
+    if (findedUsers[0]?.phone === userPhone) {
+      throw Errors.InvalidPhone;
+    }
 
     const newUser: UserData = {
       ...otherParams,
       id: uid,
       sales: [],
-      phone: normalizePhone(user.phone),
+      phone: userPhone,
       inviteCode: this.generateInviteCode(uid),
+      permitions: Permitions.user,
+      bonus: 0,
       procedures: [],
     };
 
@@ -260,24 +291,26 @@ export class Users {
       return;
     }
 
+    const { referalSale } = this.config.settings;
+
     this.updateUser(uid, {
       inviter: this.inviteCodes[code],
       sales: [
         {
-          value: 0.05,
-          name: 'startSale',
+          value: referalSale,
+          name: 'Скидка на первое посещение',
         },
       ],
     });
   }
 
-  private insertUser(uid: number, user?: UserData): void {
+  private insertUser(uid: number, user?: UserData): Promise<void> {
     this.users = {
       ...this.users,
       [uid]: user,
     };
 
-    this.store.update({
+    return this.store.update({
       users: this.users,
     });
   }

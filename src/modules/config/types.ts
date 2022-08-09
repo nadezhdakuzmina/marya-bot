@@ -7,10 +7,8 @@ export interface InitParams {
 export interface Settings {
   sendMessageDelay: number;
   inviteCodeLength: number;
-}
-
-export interface SettingsDescription {
-  [key: string]: string;
+  referalBonusPercent: number;
+  referalSale: number;
 }
 
 export interface StoreData {

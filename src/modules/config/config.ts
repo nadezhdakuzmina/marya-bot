@@ -34,26 +34,26 @@ export class Config {
     });
   }
 
-  public updateSettings(data: Partial<Settings>): void {
+  public updateSettings(data: Partial<Settings>): Promise<void> {
     this.settings = {
       ...this.settings,
       ...data,
     };
 
-    this.store.update({
+    return this.store.update({
       settings: this.settings,
     });
   }
 
   public updateTelegramCredentials(
     data: Partial<StoreData['credentials']>
-  ): void {
+  ): Promise<void> {
     this.credentials = {
       ...this.credentials,
       ...data,
     };
 
-    this.store.update({
+    return this.store.update({
       credentials: this.credentials,
     });
   }

@@ -7,7 +7,7 @@ import type { CreateScriptParams } from './types';
 const MAX_USERS_IN_MESSAGE = 30;
 
 const createUserListScript = (params: CreateScriptParams) => {
-  const { users, helpMessage, adminMenu } = params;
+  const { users, helpMessage, adminMenu, scripts } = params;
 
   return function (this: TelegramCore, message: Message): Scripts {
     const {
@@ -30,7 +30,7 @@ const createUserListScript = (params: CreateScriptParams) => {
     }
 
     this.sendMessage(userID, helpMessage, adminMenu);
-    return params.scripts;
+    return scripts;
   };
 };
 
