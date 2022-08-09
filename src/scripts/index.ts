@@ -1,5 +1,6 @@
 import createAdminScripts from './adminScripts';
 import createStartScript from './startScript';
+import createUserScripts from './userScripts';
 
 import { Permitions } from '@modules/users';
 
@@ -26,10 +27,7 @@ function applyScripts(this: Context) {
   telegram.configureScripts({
     [Commands.Start]: createStartScript.call(this, mainMenu),
     [Commands.AdminPanel]: createAdminScripts.call(this, mainMenu),
-    [Commands.PersonalAccount]: {
-      text: 'Здесь пока ничего нет',
-      keyboard: mainMenu,
-    },
+    [Commands.PersonalAccount]: createUserScripts.call(this, mainMenu),
     [Commands.Any]: {
       text: 'Прости, я тебя не поняла 😔',
       keyboard: mainMenu,
