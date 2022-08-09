@@ -34,7 +34,6 @@ export class Users {
   private store: Store<StoreData>;
   private config: Config;
   private userIndexes: Map<string, number[]>;
-  private isSearchReady: boolean;
 
   constructor(params: InitParams) {
     const { store, config } = params;
@@ -65,10 +64,6 @@ export class Users {
   }
 
   public findUsers(nameOrPhone: string): UserData[] {
-    if (!this.isSearchReady) {
-      return [];
-    }
-
     const userEntries = new Map<number, number>();
 
     try {
@@ -248,8 +243,6 @@ export class Users {
           indexUser();
           return;
         }
-
-        this.isSearchReady = true;
       });
 
     indexUser();

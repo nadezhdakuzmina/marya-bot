@@ -276,6 +276,10 @@ function createSaleControls(this: Context, params: CreateScriptParams): Script {
               from: { id: userID },
             } = message;
 
+            if (text === Commands.Cancel) {
+              return;
+            }
+
             if (selectedUser && text === Commands.AllRight) {
               return;
             }
