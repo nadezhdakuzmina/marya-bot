@@ -235,6 +235,10 @@ export class Users {
     const usersList = Object.values(this.users);
     let index = 0;
 
+    if (!usersList.length) {
+      return;
+    }
+
     const indexUser = () =>
       setTimeout(() => {
         const user = usersList[index++];
