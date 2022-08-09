@@ -58,7 +58,7 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
         },
         onText: {
           [Answers.Any]: {
-            text: 'А теперь дату рождения в формате ГГГГ.ММ.ДД',
+            text: 'А теперь дату рождения в формате ДД.ММ.ГГГГ',
             onText: {
               [Answers.Any](this: TelegramCore, message: Message): void {
                 const {

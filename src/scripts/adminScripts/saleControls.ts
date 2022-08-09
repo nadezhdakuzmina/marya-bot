@@ -146,7 +146,7 @@ function createSaleControls(this: Context, params: CreateScriptParams): Script {
             },
             onText: {
               [Commands.Any]: {
-                text: 'Напиши дату (ГГГГ.ММ.ДД) истечения скидки, если нужно',
+                text: 'Напиши дату (ДД.ММ.ГГГГ) истечения скидки, если нужно',
                 keyboard: [[{ text: Commands.Skip }]],
                 catchMessage: (message: Message) => {
                   const { text } = message;
@@ -165,7 +165,7 @@ function createSaleControls(this: Context, params: CreateScriptParams): Script {
                   } catch (e) {
                     this.sendMessage(
                       userID,
-                      'Неправильный формат, отправь мне дату в формате ГГГГ.ММ.ДД',
+                      'Неправильный формат, отправь мне дату в формате ДД.ММ.ГГГГ',
                       [[{ text: Commands.Skip }]]
                     );
 
