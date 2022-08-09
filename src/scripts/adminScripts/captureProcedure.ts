@@ -1,4 +1,4 @@
-import formatBirthday from '@utils/formatBirthday';
+import formatDate from '@utils/formatDate';
 
 import type { Scripts, TelegramCore } from '@modules/core';
 import getActualSale from '@utils/getActualSale';
@@ -39,7 +39,7 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
           userID,
           '*Найден пользователь:*\n\n' +
             `*${user.fullName}*\n` +
-            `Дата рождения: ${formatBirthday(user.birthday)}\n` +
+            `Дата рождения: ${formatDate(user.birthday)}\n` +
             `Телефон: ${user.phone}\n` +
             `Бонусов - ${user.bonus}\n` +
             `Процедур - ${user.procedures.length}`,

@@ -2,6 +2,7 @@ import renderList from '@utils/renderList';
 
 import type { Script, Scripts, TelegramCore } from '@modules/core';
 import type { Sale, UserData } from '@modules/users';
+import normalizeDate from '@utils/normalizeDate';
 import type { Message } from 'node-telegram-bot-api';
 import type { Context } from '../types';
 import type { CreateScriptParams } from './types';
@@ -145,7 +146,7 @@ function createSaleControls(this: Context, params: CreateScriptParams): Script {
             },
             onText: {
               [Commands.Any]: {
-                text: 'Напиши дату (ДД.ММ.ГГГГ) истечения скидки, если нужно',
+                text: 'Напиши дату (ГГГГ.ММ.ДД) истечения скидки, если нужно',
                 keyboard: [[{ text: Commands.Skip }]],
                 catchMessage: (message: Message) => {
                   const { text } = message;
@@ -159,17 +160,17 @@ function createSaleControls(this: Context, params: CreateScriptParams): Script {
                     return;
                   }
 
-                  if (!/^\d{2}\.\d{2}\.\d{4}$/.exec(text)) {
+                  try {
+                    expiresDate = normalizeDate(text);
+                  } catch (e) {
                     this.sendMessage(
                       userID,
-                      'Неправильный формат, отправь мне дату в формате ДД.ММ.ГГГГ',
+                      'Неправильный формат, отправь мне дату в формате ГГГГ.ММ.ДД',
                       [[{ text: Commands.Skip }]]
                     );
 
                     return false;
                   }
-
-                  expiresDate = new Date(text).getTime();
 
                   this.sendMessage(
                     userID,

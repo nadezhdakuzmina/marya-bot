@@ -1,4 +1,4 @@
-import formatBirthday from '@utils/formatBirthday';
+import formatDate from '@utils/formatDate';
 import renderList from '@utils/renderList';
 
 import type { Scripts, TelegramCore } from '@modules/core';
@@ -61,7 +61,7 @@ const createFindUserScript = (params: CreateScriptParams) => {
           this.sendMessage(
             userID,
             `*${user.fullName}*\n` +
-              `Дата рождения: ${formatBirthday(user.birthday)}\n` +
+              `Дата рождения: ${formatDate(user.birthday)}\n` +
               `Телефон: ${user.phone}\n` +
               `Бонусов - ${user.bonus}\n` +
               `Процедур - ${user.procedures.length}`

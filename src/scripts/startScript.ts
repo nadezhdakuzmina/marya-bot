@@ -1,6 +1,6 @@
 import type { Keyboard, Script, Scripts, TelegramCore } from '@modules/core';
 import { CreateUserData, Errors } from '@modules/users';
-import normalizeBirthday from '@utils/normalizeBirthday';
+import normalizeDate from '@utils/normalizeDate';
 import normalizePhone from '@utils/normalizePhone';
 import type { Message } from 'node-telegram-bot-api';
 import type { Context } from './types';
@@ -58,7 +58,7 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
         },
         onText: {
           [Answers.Any]: {
-            text: 'А теперь дату рождения в формате ДД.ММ.ГГГГ',
+            text: 'А теперь дату рождения в формате ГГГГ.ММ.ДД',
             onText: {
               [Answers.Any](this: TelegramCore, message: Message): void {
                 const {
@@ -67,7 +67,7 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
                 } = message;
 
                 try {
-                  usersData[userID].birthday = normalizeBirthday(birthday);
+                  usersData[userID].birthday = normalizeDate(birthday);
                 } catch (e) {
                   this.sendMessage(
                     userID,

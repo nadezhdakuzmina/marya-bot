@@ -1,4 +1,4 @@
-const formatBirthday = (timestamp: number): string => {
+const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
 
   const year = date.getFullYear();
@@ -17,4 +17,4 @@ const formatBirthday = (timestamp: number): string => {
   return `${day}.${month}.${year}`;
 };
 
-export default formatBirthday;
+export default formatDate;
