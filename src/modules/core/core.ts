@@ -100,16 +100,18 @@ export class TelegramCore {
                 },
           })
           .then(({ message_id }) => messageIDs.push(message_id))
-          .catch(
-            ({
-              response: {
-                body: { description },
-              },
-            }) => {
-              console.error(`Telegram Error: ${description}`);
-              return null;
+          .catch((error) => {
+            if (!error.response) {
+              console.error(`Telegram Error: ${error}`);
             }
-          );
+
+            const {
+              body: { description },
+            } = error.response;
+
+            console.error(`Telegram Error: ${description}`);
+            return null;
+          });
       }
 
       return messageIDs;
