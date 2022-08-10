@@ -101,15 +101,10 @@ export class TelegramCore {
           })
           .then(({ message_id }) => messageIDs.push(message_id))
           .catch((error) => {
-            if (!error.response) {
-              console.error(`Telegram Error: ${error}`);
-            }
+            console.error(
+              `Telegram Error: ${error.response?.body?.description || error}`
+            );
 
-            const {
-              body: { description },
-            } = error.response;
-
-            console.error(`Telegram Error: ${description}`);
             return null;
           });
       }
