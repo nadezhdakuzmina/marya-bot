@@ -4,9 +4,11 @@ import timeout from '@utils/timeout';
 
 import type { ChatType, Message } from 'node-telegram-bot-api';
 import type {
+  CheckAccessFunc,
   Config,
   Keyboard,
   KeyboardButton,
+  Script,
   Scripts,
   UserCatchPoints,
   UserScriptsPoints,
@@ -37,9 +39,9 @@ export class TelegramCore {
 
   public async sendMessage(
     chatID: number,
-    message: string,
+    messageOrFunc: string | string[] | (() => string | string[]),
     keyboard?: Keyboard
-  ): Promise<number> {
+  ): Promise<number[]> {
     return this.queue(async () => {
       let currentKeyboard = keyboard;
 
@@ -67,30 +69,87 @@ export class TelegramCore {
         }
       }
 
-      return this.client
-        .sendMessage(chatID, message, {
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-          reply_markup: currentKeyboard
-            ? {
-                keyboard: currentKeyboard,
-              }
-            : {
-                remove_keyboard: true,
-              },
-        })
-        .then(({ message_id }) => message_id)
-        .catch(
-          ({
-            response: {
-              body: { description },
-            },
-          }) => {
-            console.error(`Telegram Error: ${description}`);
+      let messages: string[] | string;
+      if (typeof messageOrFunc === 'function') {
+        messages = messageOrFunc();
+      } else {
+        messages = messageOrFunc;
+      }
+
+      let messageTexts: string[];
+      if (!Array.isArray(messages)) {
+        messageTexts = [messages];
+      } else {
+        messageTexts = messages;
+      }
+
+      const messageIDs: number[] = [];
+
+      for (let text of messageTexts) {
+        await this.client
+          .sendMessage(chatID, text, {
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: currentKeyboard
+              ? {
+                  keyboard: currentKeyboard,
+                  resize_keyboard: true,
+                }
+              : {
+                  remove_keyboard: true,
+                },
+          })
+          .then(({ message_id }) => messageIDs.push(message_id))
+          .catch((error) => {
+            console.error(
+              `Telegram Error: ${error.response?.body?.description || error}`
+            );
+
             return null;
-          }
-        );
+          });
+      }
+
+      return messageIDs;
     });
+  }
+
+  public privateScript(
+    script: Script,
+    anotherCase: Script,
+    getAccess: CheckAccessFunc
+  ): Script {
+    return (message: Message) => {
+      const {
+        from: { id: userID },
+      } = message;
+
+      const callScript = (scriptToCall: Script): Scripts => {
+        if (typeof scriptToCall === 'function') {
+          return scriptToCall.call(this, message);
+        }
+
+        if (Array.isArray(scriptToCall.text)) {
+          scriptToCall.text.forEach((text) => {
+            this.sendMessage(userID, text, scriptToCall.keyboard);
+          });
+        } else {
+          this.sendMessage(
+            userID,
+            scriptToCall.text as string | (() => string),
+            scriptToCall.keyboard
+          );
+        }
+
+        this.userCatchPoints[userID] = scriptToCall.catchMessage;
+        return scriptToCall.onText;
+      };
+
+      if (getAccess(userID)) {
+        return callScript(script);
+      }
+
+      return callScript(anotherCase);
+    };
   }
 
   public updateMessage(
@@ -152,7 +211,7 @@ export class TelegramCore {
     const currentUserCatchPoint = this.userCatchPoints[userID];
 
     if (currentUserCatchPoint) {
-      const result = currentUserCatchPoint.call(this, message);
+      const result = await currentUserCatchPoint.call(this, message);
 
       if (result === false) {
         return;
@@ -175,17 +234,7 @@ export class TelegramCore {
     }
 
     this.sendMessage(userID, script.text, script.keyboard);
-
-    if (script.catchMessage) {
-      this.userCatchPoints[userID] = script.catchMessage;
-    } else {
-      this.userCatchPoints[userID] = null;
-    }
-
-    if (script.onText) {
-      this.userScriptsPoints[userID] = script.onText;
-    } else {
-      this.userScriptsPoints[userID] = null;
-    }
+    this.userCatchPoints[userID] = script.catchMessage;
+    this.userScriptsPoints[userID] = script.onText;
   }
 }

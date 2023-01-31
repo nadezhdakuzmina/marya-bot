@@ -1,4 +1,7 @@
+import formatDate from '@utils/formatDate';
+
 import type { Scripts, TelegramCore } from '@modules/core';
+import getActualSale from '@utils/getActualSale';
 import type { Message } from 'node-telegram-bot-api';
 import type { CreateScriptParams } from './types';
 
@@ -8,11 +11,12 @@ enum Commands {
   CaptureProcedure = 'Записать процедуру',
   Cancel = 'Отмена',
   AllRight = 'Все верно',
+  Good = 'Хорошо',
   Any = '*',
 }
 
 const createCaptureProcedureScript = (params: CreateScriptParams) => {
-  const { users, helpMessage, adminMenu } = params;
+  const { users, helpMessage, adminMenu, scripts } = params;
 
   return {
     text: 'Напиши мне фамилию и имя или номер телефона клиента',
@@ -28,14 +32,15 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
         if (!user) {
           this.sendMessage(userID, '*Ничего не найдено!*');
           this.sendMessage(userID, helpMessage, adminMenu);
-          return params.scripts;
+          return scripts;
         }
 
         this.sendMessage(
           userID,
           '*Найден пользователь:*\n\n' +
             `*${user.fullName}*\n` +
-            `${user.phone}\n` +
+            `Дата рождения: ${formatDate(user.birthday)}\n` +
+            `Телефон: ${user.phone}\n` +
             `Бонусов - ${user.bonus}\n` +
             `Процедур - ${user.procedures.length}`,
           [[{ text: Commands.CaptureProcedure }], [{ text: Commands.Cancel }]]
@@ -43,6 +48,8 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
 
         let procedureName: string;
         let procedureCost: number;
+        let hasWarning = false;
+        let hasCaptured = false;
 
         return {
           [Commands.CaptureProcedure]: {
@@ -54,7 +61,7 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
                 return;
               }
 
-              procedureName = message.text;
+              procedureName = text;
 
               this.sendMessage(
                 userID,
@@ -71,9 +78,16 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
                 catchMessage(this: TelegramCore, message: Message) {
                   const { text } = message;
 
+                  if (hasCaptured && hasWarning) {
+                    if (text === Commands.Good) {
+                      return;
+                    }
+                  }
+
                   if (procedureCost && text === Commands.AllRight) {
                     const inviterUser = users.users[user.inviter];
-                    const bonusBefore = inviterUser?.bonus || 0;
+                    const inviterBonusBefore = inviterUser?.bonus || 0;
+                    const isFirstProcedure = !user.procedures.length;
 
                     users.captureProcedure(user.id, {
                       name: procedureName,
@@ -81,14 +95,53 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
                       date: Date.now(),
                     });
 
-                    const bonuseNow = inviterUser?.bonus || 0;
-
-                    this.sendMessage(
-                      user.inviter,
-                      `Ваш реферал: ${user.fullName} ` +
-                        'прошла первую процедуру\n' +
-                        `Вам начислено ${bonuseNow - bonusBefore}`
+                    const { actual, sales } = getActualSale(user.sales);
+                    const bonusToKill = Math.min(
+                      procedureCost * (1 - (actual?.value || 0)),
+                      user.bonus
                     );
+
+                    users.updateUser(user.id, {
+                      bonus: user.bonus - bonusToKill,
+                      sales,
+                    });
+
+                    if (actual || bonusToKill) {
+                      const newProcedureCost =
+                        procedureCost * (1 - (actual?.value || 0)) -
+                        bonusToKill;
+
+                      this.sendMessage(
+                        userID,
+                        `*Итог по процедуре:*\n\n` +
+                          (bonusToKill
+                            ? `Списано бонусов: ${bonusToKill}\n`
+                            : '') +
+                          (actual
+                            ? `Учтена скидка: ${actual.name} - ${
+                                actual.value * 100
+                              }%\n`
+                            : '') +
+                          '\n' +
+                          `*К оплате: ${newProcedureCost.toFixed(2)}₽*`,
+                        [[{ text: Commands.Good }]]
+                      );
+
+                      hasWarning = true;
+                      hasCaptured = true;
+                      return false;
+                    }
+
+                    if (isFirstProcedure) {
+                      this.sendMessage(
+                        user.inviter,
+                        `Ваш реферал: ${user.fullName} ` +
+                          'прошла первую процедуру\n' +
+                          `Вам начислено ${
+                            (inviterUser?.bonus || 0) - inviterBonusBefore
+                          }`
+                      );
+                    }
 
                     return;
                   }
@@ -113,7 +166,7 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
                   [Commands.Any](this: TelegramCore, message: Message) {
                     this.sendMessage(userID, 'Успешно записала процедуру');
                     this.sendMessage(userID, helpMessage, adminMenu);
-                    return params.scripts;
+                    return scripts;
                   },
                 },
               },
@@ -122,7 +175,7 @@ const createCaptureProcedureScript = (params: CreateScriptParams) => {
           [Commands.Any]: {
             text: helpMessage,
             keyboard: adminMenu,
-            onText: params.scripts,
+            onText: scripts,
           },
         };
       },

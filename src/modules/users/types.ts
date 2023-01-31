@@ -12,15 +12,19 @@ export interface InitParams {
 }
 
 export interface Sale {
-  value: number; // в долях
   name: string;
+  value: number; // в долях
+  counter?: number;
+  expires?: number;
+  highPriority?: boolean;
+  isFirst?: boolean;
 }
 
 export interface UserData {
   id: number;
   fullName: string;
   phone: string;
-  birthday: string;
+  birthday: number;
   bonus: number;
   permitions: Permitions;
   inviteCode: string;
@@ -53,3 +57,5 @@ export type CreateUserData = Omit<
   };
 
 export type UpdateUserData = Partial<UserData>;
+
+export type UpdateUserFunc = (user: UserData) => Partial<UserData>;

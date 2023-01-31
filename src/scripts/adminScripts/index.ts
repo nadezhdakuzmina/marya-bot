@@ -2,16 +2,20 @@ import renderList from '@utils/renderList';
 
 import createCaptureProcedureScript from './captureProcedure';
 import createFindUserScript from './findUser';
+import createSaleControls from './saleControls';
+import createSpammer from './spammer';
 import createUserListScript from './usersList';
 
-import type { Keyboard, Script, Scripts, TelegramCore } from '@modules/core';
+import type { Keyboard, Script, Scripts } from '@modules/core';
 import type { Context } from '../types';
-import { CreateScriptParams } from './types';
+import type { CreateScriptParams } from './types';
 
 enum Commands {
   UsersList = 'Список клиентов',
   CaptureProcedure = 'Записать процедуру',
   FindUser = 'Найти клиента',
+  SaleControls = 'Управление скидками',
+  MakeSpamMessage = 'Сделать рассылку',
   GoBack = '👈 Назад',
   Any = '*',
 }
@@ -26,6 +30,7 @@ function createAdminScript(this: Context, mainMenu: Keyboard): Script {
       Commands.UsersList,
       Commands.FindUser,
       Commands.CaptureProcedure,
+      Commands.SaleControls,
     ]) +
     '\n\n' +
     `${Commands.GoBack}`;
@@ -36,31 +41,34 @@ function createAdminScript(this: Context, mainMenu: Keyboard): Script {
     [{ text: Commands.UsersList }],
     [{ text: Commands.FindUser }],
     [{ text: Commands.CaptureProcedure }],
+    [{ text: Commands.SaleControls }],
+    [{ text: Commands.MakeSpamMessage }],
     [{ text: Commands.GoBack }],
   ];
 
+  const scripts: Scripts = {};
+
   const context: CreateScriptParams = {
-    scripts: {},
+    scripts,
     helpMessage,
     adminMenu,
     users,
   };
 
-  const scripts: Scripts = {
-    [Commands.UsersList]: createUserListScript(context),
-    [Commands.FindUser]: createFindUserScript(context),
-    [Commands.CaptureProcedure]: createCaptureProcedureScript(context),
-    [Commands.GoBack]: {
-      text: 'Главное меню',
-      keyboard: mainMenu,
-    },
-    [Commands.Any]: {
-      text: 'Я тебя не поняла',
-      keyboard: mainMenu,
-    },
+  (scripts[Commands.UsersList] = createUserListScript(context)),
+    (scripts[Commands.FindUser] = createFindUserScript(context)),
+    (scripts[Commands.CaptureProcedure] =
+      createCaptureProcedureScript(context)),
+    (scripts[Commands.SaleControls] = createSaleControls.call(this, context)),
+    (scripts[Commands.MakeSpamMessage] = createSpammer(context));
+  scripts[Commands.GoBack] = {
+    text: 'Главное меню',
+    keyboard: mainMenu,
   };
-
-  context.scripts = scripts;
+  scripts[Commands.Any] = {
+    text: 'Я тебя не поняла',
+    keyboard: mainMenu,
+  };
 
   return {
     text: startMessage,

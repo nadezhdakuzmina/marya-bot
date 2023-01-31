@@ -1,5 +1,7 @@
 import type { Keyboard, Script, Scripts, TelegramCore } from '@modules/core';
-import { CreateUserData } from '@modules/users';
+import { CreateUserData, Errors } from '@modules/users';
+import normalizeDate from '@utils/normalizeDate';
+import normalizePhone from '@utils/normalizePhone';
 import type { Message } from 'node-telegram-bot-api';
 import type { Context } from './types';
 
@@ -20,7 +22,7 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
   const usersData: UsersData = {};
 
   const registrationScript: Script = {
-    text: 'Введи фио',
+    text: 'Как вас зовут? ☺️\nМне достаточно будет фамилии и имени',
     catchMessage: (message: Message) => {
       const {
         text: fio,
@@ -32,32 +34,61 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
     onText: {
       [Answers.Any]: {
         text: 'Введите номер телефона',
-        catchMessage: (message: Message) => {
+        catchMessage(this: TelegramCore, message: Message) {
           const {
             text: phone,
             from: { id: userID },
           } = message;
 
-          usersData[userID].phone = phone;
+          try {
+            usersData[userID].phone = normalizePhone(phone);
+          } catch (e) {
+            this.sendMessage(userID, 'Неверный формат!\nПопробуй еще раз');
+            return false;
+          }
+
+          const findedUsers = users.findUsers(usersData[userID].phone);
+          if (findedUsers[0]?.phone === usersData[userID].phone) {
+            this.sendMessage(
+              userID,
+              'Такой номер телефона уже был использован ранее!\nВведите другой номер'
+            );
+            return false;
+          }
         },
         onText: {
           [Answers.Any]: {
-            text: 'Дата рождения',
-            catchMessage(this: TelegramCore, message: Message) {
-              const {
-                text: birthday,
-                from: { id: userID },
-              } = message;
-
-              usersData[userID].birthday = birthday;
-
-              users.createUser(userID, usersData[userID] as CreateUserData);
-              this.sendMessage(userID, 'Регистрация прошла успешно!');
-            },
+            text: 'А теперь дату рождения в формате ДД.ММ.ГГГГ',
             onText: {
-              [Answers.Any]: {
-                text: 'Главное меню',
-                keyboard: mainMenu,
+              [Answers.Any](this: TelegramCore, message: Message): void {
+                const {
+                  text: birthday,
+                  from: { id: userID },
+                } = message;
+
+                try {
+                  usersData[userID].birthday = normalizeDate(birthday);
+                } catch (e) {
+                  this.sendMessage(
+                    userID,
+                    'Неверный формат!\nПопробуй еще раз'
+                  );
+                }
+
+                try {
+                  users.createUser(userID, usersData[userID] as CreateUserData);
+                  delete usersData[userID];
+
+                  this.sendMessage(userID, 'Регистрация прошла успешно!');
+                  this.sendMessage(userID, 'Главное меню', mainMenu);
+                } catch (error) {
+                  this.sendMessage(
+                    userID,
+                    'Что-то пошло не так, попробуйте позже!\n/start'
+                  );
+                  delete usersData[userID];
+                  console.error(error);
+                }
               },
             },
           },
@@ -80,14 +111,14 @@ function createStartScript(this: Context, mainMenu: Keyboard): Script {
 
     return {
       [Answers.Yes]: {
-        text: 'Тогда начнем регистрацию. У тебя есть пригл код?',
+        text: 'Тогда начнем регистрацию. У тебя есть пригласительный код?',
         keyboard: [[{ text: Answers.Yes }, { text: Answers.No }]],
         catchMessage: (message: Message) => {
           usersData[message.from.id] = {};
         },
         onText: {
           [Answers.Yes]: {
-            text: 'Введи код',
+            text: 'Введи пригласительный код',
             catchMessage(this: TelegramCore, message: Message) {
               let codeOrSkip = message.text;
 

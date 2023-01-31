@@ -1,3 +1,4 @@
+import formatDate from '@utils/formatDate';
 import renderList from '@utils/renderList';
 
 import type { Scripts, TelegramCore } from '@modules/core';
@@ -9,7 +10,7 @@ enum Commands {
 }
 
 const createFindUserScript = (params: CreateScriptParams) => {
-  const { users, helpMessage, adminMenu } = params;
+  const { users, helpMessage, adminMenu, scripts } = params;
 
   return {
     text: 'Напиши мне фамилию и имя или номер телефона клиента, которого нужно найти',
@@ -25,7 +26,7 @@ const createFindUserScript = (params: CreateScriptParams) => {
         if (!usersList.length) {
           this.sendMessage(userID, '*Ничего не найдено!*');
           this.sendMessage(userID, helpMessage, adminMenu);
-          return params.scripts;
+          return scripts;
         }
 
         this.sendMessage(
@@ -39,11 +40,11 @@ const createFindUserScript = (params: CreateScriptParams) => {
 
         function getFullName(this: TelegramCore, message: Message): Scripts {
           const {
-            text: fullName,
+            text,
             from: { id: userID },
           } = message;
 
-          const user = users.findUsers(fullName)[0];
+          const user = usersList.find(({ fullName }) => text === fullName);
 
           if (!user) {
             this.sendMessage(
@@ -60,13 +61,14 @@ const createFindUserScript = (params: CreateScriptParams) => {
           this.sendMessage(
             userID,
             `*${user.fullName}*\n` +
-              `${user.phone}\n` +
+              `Дата рождения: ${formatDate(user.birthday)}\n` +
+              `Телефон: ${user.phone}\n` +
               `Бонусов - ${user.bonus}\n` +
               `Процедур - ${user.procedures.length}`
           );
 
           this.sendMessage(userID, helpMessage, adminMenu);
-          return params.scripts;
+          return scripts;
         }
 
         return {

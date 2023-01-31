@@ -13,10 +13,12 @@ export type ScriptFunc = (
   message: Message
 ) => Scripts | Promise<Scripts | undefined> | void;
 
-export type CatchMessageFunc = (message: Message) => false | void;
+export type CatchMessageFunc = (
+  message: Message
+) => Promise<false | void> | false | void;
 
 export interface TextScript {
-  text: string;
+  text: string | string[] | (() => string | string[]);
   keyboard?: Keyboard;
   onText?: Scripts;
   catchMessage?: CatchMessageFunc;
@@ -36,9 +38,11 @@ export interface UserCatchPoints {
   [uid: number]: CatchMessageFunc;
 }
 
+export type CheckAccessFunc = (uid: number) => boolean;
+
 export interface KeyboardButton {
   text: string;
-  checkAccess?: (uid: number) => boolean;
+  checkAccess?: CheckAccessFunc;
 }
 
 export type Keyboard = KeyboardButton[][];
